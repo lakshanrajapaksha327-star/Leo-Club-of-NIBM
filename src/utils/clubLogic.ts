@@ -1,4 +1,4 @@
-import type { Project, ProjectStatus, UserRole } from '../types/club';
+import type { Project, ProjectStatus, PublicationStatus, UserRole } from '../types/club';
 
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20 MB
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB
@@ -197,7 +197,14 @@ export function validateMediaFile(
 
 export function canRolePerform(
   role: UserRole | null | undefined,
-  action: 'viewAdmin' | 'editContent' | 'publish' | 'manageUsers' | 'delete',
+  action:
+    | 'viewAdmin'
+    | 'editContent'
+    | 'publish'
+    | 'manageUsers'
+    | 'delete'
+    | 'viewPrivateInquiries'
+    | 'manageSettings',
 ): boolean {
   if (!role) return false;
   switch (action) {
@@ -206,6 +213,8 @@ export function canRolePerform(
     case 'editContent':
       return ['superAdmin', 'president', 'secretary', 'projectEditor', 'mediaEditor'].includes(role);
     case 'publish':
+    case 'viewPrivateInquiries':
+    case 'manageSettings':
       return ['superAdmin', 'president', 'secretary'].includes(role);
     case 'delete':
       return ['superAdmin', 'president'].includes(role);
@@ -214,6 +223,20 @@ export function canRolePerform(
     default:
       return false;
   }
+}
+
+export function canTransitionPublicationStatus(
+  role: UserRole | null | undefined,
+  nextStatus: PublicationStatus,
+): boolean {
+  if (!role) return false;
+  if (canRolePerform(role, 'publish')) {
+    return true;
+  }
+  if (canRolePerform(role, 'editContent')) {
+    return nextStatus === 'draft' || nextStatus === 'submitted';
+  }
+  return false;
 }
 
 export interface ValidationErrors {
@@ -228,6 +251,7 @@ export function validateMembershipEnquiry(input: {
   programme: string;
   batch: string;
   reason: string;
+  consentAccepted?: boolean;
 }): ValidationErrors {
   const errors: ValidationErrors = {};
   if (input.fullName.trim().length < 2) {
@@ -245,6 +269,9 @@ export function validateMembershipEnquiry(input: {
   if (input.reason.trim().length < 15) {
     errors.reason = 'Please share a brief note (at least 15 characters) on why you want to join.';
   }
+  if (input.consentAccepted === false) {
+    errors.consentAccepted = 'Please confirm consent so club officers can review your enquiry.';
+  }
   return errors;
 }
 
@@ -253,6 +280,7 @@ export function validateContactMessage(input: {
   email: string;
   subject: string;
   message: string;
+  consentAccepted?: boolean;
 }): ValidationErrors {
   const errors: ValidationErrors = {};
   if (input.name.trim().length < 2) {
@@ -266,6 +294,9 @@ export function validateContactMessage(input: {
   }
   if (input.message.trim().length < 10) {
     errors.message = 'Please write a message of at least 10 characters.';
+  }
+  if (input.consentAccepted === false) {
+    errors.consentAccepted = 'Please confirm consent for club officers to respond to your enquiry.';
   }
   return errors;
 }

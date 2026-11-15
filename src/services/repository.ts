@@ -1,4 +1,13 @@
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { DEFAULT_SITE_SETTINGS } from '../data/brand';
+import {
+  db,
+  FIREBASE_RUNTIME_INFO,
+  formatFriendlyFirebaseError,
+  handleFirestoreError,
+  isFirebaseConfigured,
+  OperationType,
+} from '../lib/firebase';
 import type {
   Achievement,
   ClubEvent,
@@ -19,10 +28,12 @@ export interface BackendStatus {
 }
 
 export const BACKEND_STATUS: BackendStatus = {
-  firestoreConnected: false,
-  authConnected: false,
-  storageConnected: false,
-  regionHint: 'Pending Firebase setup (Step 2)',
+  firestoreConnected: isFirebaseConfigured,
+  authConnected: isFirebaseConfigured,
+  storageConnected: isFirebaseConfigured && Boolean(FIREBASE_RUNTIME_INFO.storageBucket),
+  regionHint: isFirebaseConfigured
+    ? `Project ${FIREBASE_RUNTIME_INFO.projectId} · DB ${FIREBASE_RUNTIME_INFO.firestoreDatabaseId}`
+    : 'Firebase not configured',
 };
 
 export interface ClubPublicData {
@@ -37,7 +48,6 @@ export interface ClubPublicData {
 }
 
 export async function fetchPublicClubData(): Promise<ClubPublicData> {
-  // Honest empty state before Firebase Firestore is provisioned and club records are published.
   return {
     settings: DEFAULT_SITE_SETTINGS,
     projects: [],
@@ -51,30 +61,84 @@ export async function fetchPublicClubData(): Promise<ClubPublicData> {
 }
 
 export async function submitMembershipEnquiry(
-  _enquiry: Omit<MembershipEnquiry, 'id' | 'status' | 'createdAt'>,
+  enquiry: Omit<MembershipEnquiry, 'id' | 'status' | 'createdAt'>,
 ): Promise<{ accepted: boolean; message: string }> {
-  if (!BACKEND_STATUS.firestoreConnected) {
+  if (!db) {
     return {
       accepted: false,
       message:
-        'Firebase Firestore is not connected yet. Complete Step 2 (Enable Firebase) to store membership enquiries securely.',
+        'Firebase Firestore is not configured in this environment. Please contact the club administrators.',
     };
   }
-  return { accepted: true, message: 'Membership enquiry recorded.' };
+
+  const path = 'membershipEnquiries';
+  try {
+    await addDoc(collection(db, path), {
+      fullName: enquiry.fullName.trim().slice(0, 120),
+      email: enquiry.email.trim().slice(0, 160),
+      programme: enquiry.programme.trim().slice(0, 160),
+      batch: enquiry.batch.trim().slice(0, 60),
+      reason: enquiry.reason.trim().slice(0, 2000),
+      consentAccepted: Boolean(enquiry.consentAccepted),
+      status: 'new',
+      createdAt: serverTimestamp(),
+    });
+    return {
+      accepted: true,
+      message:
+        'Thank you! Your membership enquiry has been securely recorded for review by the Leo Club of NIBM Executive Committee.',
+    };
+  } catch (error) {
+    try {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    } catch (wrapped) {
+      return {
+        accepted: false,
+        message: formatFriendlyFirebaseError(wrapped),
+      };
+    }
+  }
 }
 
-export async function submitContactEnquiry(_payload: {
+export async function submitContactEnquiry(payload: {
   name: string;
   email: string;
   subject: string;
   message: string;
+  consentAccepted: boolean;
 }): Promise<{ accepted: boolean; message: string }> {
-  if (!BACKEND_STATUS.firestoreConnected) {
+  if (!db) {
     return {
       accepted: false,
       message:
-        'Firebase Firestore is not connected yet. Complete Step 2 (Enable Firebase) before submitting live contact enquiries.',
+        'Firebase Firestore is not configured in this environment. Please contact the club administrators.',
     };
   }
-  return { accepted: true, message: 'Contact message recorded.' };
+
+  const path = 'contactMessages';
+  try {
+    await addDoc(collection(db, path), {
+      name: payload.name.trim().slice(0, 120),
+      email: payload.email.trim().slice(0, 160),
+      subject: payload.subject.trim().slice(0, 180),
+      message: payload.message.trim().slice(0, 3000),
+      consentAccepted: Boolean(payload.consentAccepted),
+      status: 'new',
+      createdAt: serverTimestamp(),
+    });
+    return {
+      accepted: true,
+      message:
+        'Thank you! Your message has been securely delivered to the Leo Club of NIBM Executive Committee.',
+    };
+  } catch (error) {
+    try {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    } catch (wrapped) {
+      return {
+        accepted: false,
+        message: formatFriendlyFirebaseError(wrapped),
+      };
+    }
+  }
 }

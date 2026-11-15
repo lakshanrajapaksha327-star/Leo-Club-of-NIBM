@@ -1,0 +1,713 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ── Core Primitives ──
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedSuperAdmin() {
+      return isSignedIn() && request.auth.token.email == 'lakshanrajapaksha327@gmail.com';
+    }
+
+    function hasUserDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      return hasUserDoc() && userDoc().active == true;
+    }
+
+    function userRole() {
+      return isBootstrappedSuperAdmin() ? 'superAdmin' : (isActiveUser() ? userDoc().role : 'none');
+    }
+
+    function isSuperAdmin() {
+      return isBootstrappedSuperAdmin() || userRole() == 'superAdmin';
+    }
+
+    function isPublisher() {
+      return isSuperAdmin() || userRole() in ['president', 'secretary'];
+    }
+
+    function isEditor() {
+      return isPublisher() || userRole() in ['projectEditor', 'mediaEditor'];
+    }
+
+    function isStaff() {
+      return isEditor() || userRole() == 'viewer';
+    }
+
+    function isDeleter() {
+      return isSuperAdmin() || userRole() == 'president';
+    }
+
+    function isValidYear(y) {
+      return y is string && y.size() >= 4 && y.size() <= 20;
+    }
+
+    function isValidSlug(s) {
+      return s is string && s.size() >= 2 && s.size() <= 120 && s.matches('^[a-z0-9\\-]+$');
+    }
+
+    function isValidActivityStatus(s) {
+      return s in ['planned', 'upcoming', 'ongoing', 'completed', 'cancelled'];
+    }
+
+    function isValidPubStatus(s) {
+      return s in ['draft', 'submitted', 'underReview', 'approved', 'published', 'archived', 'rejected'];
+    }
+
+    function isEditorWritablePubStatus(s) {
+      return s in ['draft', 'submitted'];
+    }
+
+    function isValidRole(r) {
+      return r in ['superAdmin', 'president', 'secretary', 'projectEditor', 'mediaEditor', 'viewer'];
+    }
+
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    // ── Site Settings ──
+    function isValidSiteSettings(data) {
+      return data.keys().hasAll([
+        'clubName', 'institutionName', 'districtName', 'multipleDistrictName',
+        'currentLeosticYear', 'availableYears', 'socialLinks', 'verifiedImpactMetrics',
+        'updatedAt', 'updatedBy'
+      ]) && data.keys().hasOnly([
+        'clubName', 'institutionName', 'districtName', 'multipleDistrictName',
+        'currentLeosticYear', 'availableYears', 'annualTheme', 'charterDate',
+        'mission', 'vision', 'clubHistory', 'officialEmail', 'officialPhone',
+        'campusAddress', 'socialLinks', 'verifiedImpactMetrics', 'heroSlides',
+        'privacyUpdatedAt', 'updatedAt', 'updatedBy'
+      ]) &&
+      data.clubName is string && data.clubName.size() >= 2 && data.clubName.size() <= 120 &&
+      data.institutionName is string && data.institutionName.size() >= 2 && data.institutionName.size() <= 180 &&
+      data.districtName is string && data.districtName.size() >= 2 && data.districtName.size() <= 120 &&
+      data.multipleDistrictName is string && data.multipleDistrictName.size() >= 2 && data.multipleDistrictName.size() <= 140 &&
+      isValidYear(data.currentLeosticYear) &&
+      data.availableYears is list && data.availableYears.size() >= 1 && data.availableYears.size() <= 30 &&
+      data.availableYears[0] is string &&
+      data.socialLinks is map &&
+      data.verifiedImpactMetrics is list && data.verifiedImpactMetrics.size() <= 20 &&
+      (!('heroSlides' in data) || (data.heroSlides is list && data.heroSlides.size() <= 10)) &&
+      isOptionalString(data, 'annualTheme', 200) &&
+      isOptionalString(data, 'charterDate', 60) &&
+      isOptionalString(data, 'mission', 2000) &&
+      isOptionalString(data, 'vision', 2000) &&
+      isOptionalString(data, 'clubHistory', 10000) &&
+      isOptionalString(data, 'officialEmail', 160) &&
+      isOptionalString(data, 'officialPhone', 40) &&
+      isOptionalString(data, 'campusAddress', 300) &&
+      isOptionalString(data, 'privacyUpdatedAt', 40) &&
+      data.updatedBy == request.auth.uid &&
+      data.updatedAt == request.time;
+    }
+
+    match /siteSettings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if false;
+      allow create, update: if isValidId(settingId) && settingId == 'main' && isPublisher() && isValidSiteSettings(incoming());
+      allow delete: if false;
+    }
+
+    // ── Club Years ──
+    function isValidClubYear(data) {
+      return data.keys().hasAll(['year', 'status', 'isCurrent', 'createdAt', 'updatedAt', 'updatedBy']) &&
+        data.keys().hasOnly(['year', 'theme', 'status', 'startDate', 'endDate', 'summary', 'isCurrent', 'createdAt', 'updatedAt', 'updatedBy']) &&
+        isValidYear(data.year) &&
+        data.status in ['active', 'archived'] &&
+        data.isCurrent is bool &&
+        isOptionalString(data, 'theme', 200) &&
+        isOptionalString(data, 'startDate', 40) &&
+        isOptionalString(data, 'endDate', 40) &&
+        isOptionalString(data, 'summary', 3000) &&
+        data.updatedBy == request.auth.uid &&
+        data.updatedAt == request.time;
+    }
+
+    match /clubYears/{yearId} {
+      allow get: if isValidId(yearId);
+      allow list: if true;
+      allow create: if isValidId(yearId) && isPublisher() && isValidClubYear(incoming()) && incoming().createdAt == request.time;
+      allow update: if isValidId(yearId) && isPublisher() && isValidClubYear(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['year', 'theme', 'status', 'startDate', 'endDate', 'summary', 'isCurrent', 'updatedAt', 'updatedBy']);
+      allow delete: if isValidId(yearId) && isDeleter();
+    }
+
+    // ── Projects ──
+    function isValidProject(data) {
+      return data.keys().hasAll([
+        'title', 'slug', 'summary', 'story', 'category', 'leosticYear',
+        'startDate', 'location', 'status', 'publicationStatus', 'coverImage',
+        'coverAlt', 'media', 'videoUrls', 'metrics', 'partners', 'featured',
+        'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) && data.keys().hasOnly([
+        'title', 'slug', 'summary', 'story', 'storySections', 'category',
+        'secondaryCategory', 'leosticYear', 'startDate', 'endDate', 'location',
+        'status', 'publicationStatus', 'coverImage', 'coverAlt', 'media',
+        'videoUrls', 'documents', 'metrics', 'partners', 'projectChair',
+        'organisers', 'participatingLeos', 'beneficiaries', 'volunteerHours',
+        'fundsDisplayApproved', 'evidenceNote', 'reviewNote', 'reviewedBy',
+        'reviewedAt', 'publishedAt', 'featured', 'createdBy', 'updatedBy',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 180 &&
+      isValidSlug(data.slug) &&
+      data.summary is string && data.summary.size() >= 10 && data.summary.size() <= 600 &&
+      data.story is string && data.story.size() <= 20000 &&
+      (!('storySections' in data) || data.storySections is map) &&
+      data.category is string && data.category.size() >= 2 && data.category.size() <= 120 &&
+      isOptionalString(data, 'secondaryCategory', 120) &&
+      isValidYear(data.leosticYear) &&
+      data.startDate is string && data.startDate.size() >= 4 && data.startDate.size() <= 40 &&
+      isOptionalString(data, 'endDate', 40) &&
+      data.location is string && data.location.size() <= 180 &&
+      isValidActivityStatus(data.status) &&
+      isValidPubStatus(data.publicationStatus) &&
+      data.coverImage is string && data.coverImage.size() <= 1000 &&
+      data.coverAlt is string && data.coverAlt.size() <= 300 &&
+      data.media is list && data.media.size() <= 40 &&
+      data.videoUrls is list && data.videoUrls.size() <= 12 &&
+      (!('documents' in data) || (data.documents is list && data.documents.size() <= 20)) &&
+      data.metrics is list && data.metrics.size() <= 12 &&
+      data.partners is list && data.partners.size() <= 20 &&
+      (!('organisers' in data) || (data.organisers is list && data.organisers.size() <= 40)) &&
+      isOptionalString(data, 'projectChair', 140) &&
+      isOptionalString(data, 'participatingLeos', 60) &&
+      isOptionalString(data, 'beneficiaries', 60) &&
+      isOptionalString(data, 'volunteerHours', 60) &&
+      (!('fundsDisplayApproved' in data) || data.fundsDisplayApproved is bool) &&
+      isOptionalString(data, 'evidenceNote', 1000) &&
+      isOptionalString(data, 'reviewNote', 1000) &&
+      isOptionalString(data, 'reviewedBy', 128) &&
+      isOptionalString(data, 'reviewedAt', 40) &&
+      isOptionalString(data, 'publishedAt', 40) &&
+      data.featured is bool &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.updatedBy == request.auth.uid &&
+      data.updatedAt == request.time;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId) && (existing().publicationStatus == 'published' || isStaff());
+      allow list: if resource.data.publicationStatus == 'published' || isStaff();
+      allow create: if isValidId(projectId) && isEditor() && isValidProject(incoming()) &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        (isPublisher() || isEditorWritablePubStatus(incoming().publicationStatus));
+      allow update: if isValidId(projectId) && isValidProject(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().createdBy == existing().createdBy && (
+          isPublisher() ||
+          (
+            isEditor() &&
+            isEditorWritablePubStatus(incoming().publicationStatus) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'slug', 'summary', 'story', 'storySections', 'category',
+              'secondaryCategory', 'leosticYear', 'startDate', 'endDate', 'location',
+              'status', 'publicationStatus', 'coverImage', 'coverAlt', 'media',
+              'videoUrls', 'documents', 'metrics', 'partners', 'projectChair',
+              'organisers', 'participatingLeos', 'beneficiaries', 'volunteerHours',
+              'evidenceNote', 'updatedBy', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(projectId) && isDeleter();
+    }
+
+    // ── Events ──
+    function isValidEvent(data) {
+      return data.keys().hasAll([
+        'title', 'summary', 'date', 'location', 'leosticYear', 'status',
+        'publicationStatus', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) && data.keys().hasOnly([
+        'title', 'summary', 'date', 'endDate', 'location', 'leosticYear', 'status',
+        'publicationStatus', 'posterUrl', 'registrationUrl', 'createdBy',
+        'updatedBy', 'createdAt', 'updatedAt'
+      ]) &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 180 &&
+      data.summary is string && data.summary.size() >= 5 && data.summary.size() <= 1200 &&
+      data.date is string && data.date.size() >= 4 && data.date.size() <= 40 &&
+      isOptionalString(data, 'endDate', 40) &&
+      data.location is string && data.location.size() >= 2 && data.location.size() <= 180 &&
+      isValidYear(data.leosticYear) &&
+      data.status in ['upcoming', 'completed', 'cancelled'] &&
+      isValidPubStatus(data.publicationStatus) &&
+      isOptionalString(data, 'posterUrl', 1000) &&
+      isOptionalString(data, 'registrationUrl', 1000) &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.updatedBy == request.auth.uid &&
+      data.updatedAt == request.time;
+    }
+
+    match /events/{eventId} {
+      allow get: if isValidId(eventId) && (existing().publicationStatus == 'published' || isStaff());
+      allow list: if resource.data.publicationStatus == 'published' || isStaff();
+      allow create: if isValidId(eventId) && isEditor() && isValidEvent(incoming()) &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        (isPublisher() || isEditorWritablePubStatus(incoming().publicationStatus));
+      allow update: if isValidId(eventId) && isValidEvent(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().createdBy == existing().createdBy && (
+          isPublisher() ||
+          (
+            isEditor() &&
+            isEditorWritablePubStatus(incoming().publicationStatus) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'summary', 'date', 'endDate', 'location', 'leosticYear',
+              'status', 'publicationStatus', 'posterUrl', 'registrationUrl',
+              'updatedBy', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(eventId) && isDeleter();
+    }
+
+    // ── Executive Officers ──
+    function isValidOfficer(data) {
+      return data.keys().hasAll([
+        'name', 'position', 'leosticYear', 'displayOrder', 'visible',
+        'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) && data.keys().hasOnly([
+        'name', 'position', 'leosticYear', 'biography', 'photoUrl', 'displayOrder',
+        'visible', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) &&
+      data.name is string && data.name.size() >= 2 && data.name.size() <= 140 &&
+      data.position is string && data.position.size() >= 2 && data.position.size() <= 120 &&
+      isValidYear(data.leosticYear) &&
+      isOptionalString(data, 'biography', 1200) &&
+      isOptionalString(data, 'photoUrl', 1000) &&
+      data.displayOrder is number &&
+      data.visible is bool &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.updatedBy == request.auth.uid &&
+      data.updatedAt == request.time;
+    }
+
+    match /officers/{officerId} {
+      allow get: if isValidId(officerId) && (existing().visible == true || isStaff());
+      allow list: if resource.data.visible == true || isStaff();
+      allow create: if isValidId(officerId) && isPublisher() && isValidOfficer(incoming()) &&
+        incoming().createdBy == request.auth.uid && incoming().createdAt == request.time;
+      allow update: if isValidId(officerId) && isPublisher() && isValidOfficer(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'position', 'leosticYear', 'biography', 'photoUrl',
+          'displayOrder', 'visible', 'updatedBy', 'updatedAt'
+        ]);
+      allow delete: if isValidId(officerId) && isDeleter();
+    }
+
+    // ── Gallery Albums ──
+    function isValidGalleryAlbum(data) {
+      return data.keys().hasAll([
+        'title', 'leosticYear', 'date', 'coverUrl', 'coverAlt', 'photos',
+        'consentConfirmed', 'publicationStatus', 'createdBy', 'updatedBy',
+        'createdAt', 'updatedAt'
+      ]) && data.keys().hasOnly([
+        'title', 'description', 'leosticYear', 'date', 'coverUrl', 'coverAlt',
+        'photos', 'consentConfirmed', 'publicationStatus', 'createdBy', 'updatedBy',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 160 &&
+      isOptionalString(data, 'description', 1000) &&
+      isValidYear(data.leosticYear) &&
+      data.date is string && data.date.size() >= 4 && data.date.size() <= 40 &&
+      data.coverUrl is string && data.coverUrl.size() <= 1000 &&
+      data.coverAlt is string && data.coverAlt.size() <= 300 &&
+      data.photos is list && data.photos.size() <= 60 &&
+      data.consentConfirmed is bool &&
+      isValidPubStatus(data.publicationStatus) &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.updatedBy == request.auth.uid &&
+      data.updatedAt == request.time;
+    }
+
+    match /galleryAlbums/{albumId} {
+      allow get: if isValidId(albumId) && (existing().publicationStatus == 'published' || isStaff());
+      allow list: if resource.data.publicationStatus == 'published' || isStaff();
+      allow create: if isValidId(albumId) && isEditor() && isValidGalleryAlbum(incoming()) &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        (isPublisher() || isEditorWritablePubStatus(incoming().publicationStatus));
+      allow update: if isValidId(albumId) && isValidGalleryAlbum(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().createdBy == existing().createdBy && (
+          isPublisher() ||
+          (
+            isEditor() &&
+            isEditorWritablePubStatus(incoming().publicationStatus) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'description', 'leosticYear', 'date', 'coverUrl',
+              'coverAlt', 'photos', 'consentConfirmed', 'publicationStatus',
+              'updatedBy', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(albumId) && isDeleter();
+    }
+
+    // ── News Articles ──
+    function isValidNews(data) {
+      return data.keys().hasAll([
+        'title', 'slug', 'excerpt', 'body', 'date', 'leosticYear',
+        'publicationStatus', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) && data.keys().hasOnly([
+        'title', 'slug', 'excerpt', 'body', 'date', 'leosticYear', 'coverUrl',
+        'publicationStatus', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 180 &&
+      isValidSlug(data.slug) &&
+      data.excerpt is string && data.excerpt.size() >= 10 && data.excerpt.size() <= 500 &&
+      data.body is string && data.body.size() >= 10 && data.body.size() <= 20000 &&
+      data.date is string && data.date.size() >= 4 && data.date.size() <= 40 &&
+      isValidYear(data.leosticYear) &&
+      isOptionalString(data, 'coverUrl', 1000) &&
+      isValidPubStatus(data.publicationStatus) &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.updatedBy == request.auth.uid &&
+      data.updatedAt == request.time;
+    }
+
+    match /news/{newsId} {
+      allow get: if isValidId(newsId) && (existing().publicationStatus == 'published' || isStaff());
+      allow list: if resource.data.publicationStatus == 'published' || isStaff();
+      allow create: if isValidId(newsId) && isEditor() && isValidNews(incoming()) &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        (isPublisher() || isEditorWritablePubStatus(incoming().publicationStatus));
+      allow update: if isValidId(newsId) && isValidNews(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().createdBy == existing().createdBy && (
+          isPublisher() ||
+          (
+            isEditor() &&
+            isEditorWritablePubStatus(incoming().publicationStatus) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'slug', 'excerpt', 'body', 'date', 'leosticYear',
+              'coverUrl', 'publicationStatus', 'updatedBy', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(newsId) && isDeleter();
+    }
+
+    // ── Publications & Magazines ──
+    function isValidPublication(data) {
+      return data.keys().hasAll([
+        'title', 'type', 'description', 'date', 'leosticYear',
+        'publicationStatus', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) && data.keys().hasOnly([
+        'title', 'issue', 'type', 'description', 'date', 'leosticYear',
+        'coverUrl', 'pdfUrl', 'publicationStatus', 'createdBy', 'updatedBy',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 180 &&
+      isOptionalString(data, 'issue', 80) &&
+      data.type in ['newsletter', 'annual-report', 'bulletin'] &&
+      data.description is string && data.description.size() >= 5 && data.description.size() <= 1000 &&
+      data.date is string && data.date.size() >= 4 && data.date.size() <= 40 &&
+      isValidYear(data.leosticYear) &&
+      isOptionalString(data, 'coverUrl', 1000) &&
+      isOptionalString(data, 'pdfUrl', 1000) &&
+      isValidPubStatus(data.publicationStatus) &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.updatedBy == request.auth.uid &&
+      data.updatedAt == request.time;
+    }
+
+    match /publications/{publicationId} {
+      allow get: if isValidId(publicationId) && (existing().publicationStatus == 'published' || isStaff());
+      allow list: if resource.data.publicationStatus == 'published' || isStaff();
+      allow create: if isValidId(publicationId) && isEditor() && isValidPublication(incoming()) &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        (isPublisher() || isEditorWritablePubStatus(incoming().publicationStatus));
+      allow update: if isValidId(publicationId) && isValidPublication(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().createdBy == existing().createdBy && (
+          isPublisher() ||
+          (
+            isEditor() &&
+            isEditorWritablePubStatus(incoming().publicationStatus) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'issue', 'type', 'description', 'date', 'leosticYear',
+              'coverUrl', 'pdfUrl', 'publicationStatus', 'updatedBy', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(publicationId) && isDeleter();
+    }
+
+    // ── Awards & Achievements ──
+    function isValidAchievement(data) {
+      return data.keys().hasAll([
+        'title', 'awardBody', 'leosticYear', 'visible',
+        'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) && data.keys().hasOnly([
+        'title', 'awardBody', 'category', 'leosticYear', 'date', 'description',
+        'visible', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'
+      ]) &&
+      data.title is string && data.title.size() >= 2 && data.title.size() <= 180 &&
+      data.awardBody is string && data.awardBody.size() >= 2 && data.awardBody.size() <= 160 &&
+      isOptionalString(data, 'category', 120) &&
+      isValidYear(data.leosticYear) &&
+      isOptionalString(data, 'date', 40) &&
+      isOptionalString(data, 'description', 1500) &&
+      data.visible is bool &&
+      data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+      data.updatedBy == request.auth.uid &&
+      data.updatedAt == request.time;
+    }
+
+    match /achievements/{achievementId} {
+      allow get: if isValidId(achievementId) && (existing().visible == true || isStaff());
+      allow list: if resource.data.visible == true || isStaff();
+      allow create: if isValidId(achievementId) && isPublisher() && isValidAchievement(incoming()) &&
+        incoming().createdBy == request.auth.uid && incoming().createdAt == request.time;
+      allow update: if isValidId(achievementId) && isPublisher() && isValidAchievement(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'awardBody', 'category', 'leosticYear', 'date',
+          'description', 'visible', 'updatedBy', 'updatedAt'
+        ]);
+      allow delete: if isValidId(achievementId) && isDeleter();
+    }
+
+    // ── Private Membership Enquiries ──
+    function isValidMembershipEnquiry(data) {
+      return data.keys().hasAll([
+        'fullName', 'email', 'programme', 'batch', 'reason',
+        'consentAccepted', 'status', 'createdAt'
+      ]) && data.keys().hasOnly([
+        'fullName', 'email', 'programme', 'batch', 'reason',
+        'consentAccepted', 'status', 'internalNotes', 'createdAt', 'updatedAt'
+      ]) &&
+      data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120 &&
+      data.email is string && data.email.size() >= 5 && data.email.size() <= 160 &&
+      data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$') &&
+      data.programme is string && data.programme.size() >= 2 && data.programme.size() <= 160 &&
+      data.batch is string && data.batch.size() >= 1 && data.batch.size() <= 60 &&
+      data.reason is string && data.reason.size() >= 15 && data.reason.size() <= 2000 &&
+      data.consentAccepted == true &&
+      data.status in ['new', 'reviewed', 'contacted', 'archived'] &&
+      isOptionalString(data, 'internalNotes', 1000);
+    }
+
+    match /membershipEnquiries/{enquiryId} {
+      allow get: if isValidId(enquiryId) && isPublisher();
+      allow list: if isPublisher();
+      allow create: if isValidId(enquiryId) && isValidMembershipEnquiry(incoming()) &&
+        incoming().status == 'new' &&
+        incoming().createdAt == request.time &&
+        !('internalNotes' in incoming()) &&
+        !('updatedAt' in incoming());
+      allow update: if isValidId(enquiryId) && isPublisher() && isValidMembershipEnquiry(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'internalNotes', 'updatedAt']);
+      allow delete: if isValidId(enquiryId) && isDeleter();
+    }
+
+    // ── Private Contact Messages ──
+    function isValidContactMessage(data) {
+      return data.keys().hasAll([
+        'name', 'email', 'subject', 'message', 'consentAccepted', 'status', 'createdAt'
+      ]) && data.keys().hasOnly([
+        'name', 'email', 'subject', 'message', 'consentAccepted', 'status',
+        'internalNotes', 'createdAt', 'updatedAt'
+      ]) &&
+      data.name is string && data.name.size() >= 2 && data.name.size() <= 120 &&
+      data.email is string && data.email.size() >= 5 && data.email.size() <= 160 &&
+      data.email.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$') &&
+      data.subject is string && data.subject.size() >= 3 && data.subject.size() <= 180 &&
+      data.message is string && data.message.size() >= 10 && data.message.size() <= 3000 &&
+      data.consentAccepted == true &&
+      data.status in ['new', 'reviewed', 'replied', 'archived'] &&
+      isOptionalString(data, 'internalNotes', 1000);
+    }
+
+    match /contactMessages/{messageId} {
+      allow get: if isValidId(messageId) && isPublisher();
+      allow list: if isPublisher();
+      allow create: if isValidId(messageId) && isValidContactMessage(incoming()) &&
+        incoming().status == 'new' &&
+        incoming().createdAt == request.time &&
+        !('internalNotes' in incoming()) &&
+        !('updatedAt' in incoming());
+      allow update: if isValidId(messageId) && isPublisher() && isValidContactMessage(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'internalNotes', 'updatedAt']);
+      allow delete: if isValidId(messageId) && isDeleter();
+    }
+
+    // ── Admin Invites Allowlist ──
+    function isValidAdminInvite(data) {
+      return data.keys().hasAll(['email', 'role', 'active', 'invitedBy', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['email', 'role', 'active', 'invitedBy', 'createdAt', 'updatedAt']) &&
+        data.email is string && data.email.size() >= 5 && data.email.size() <= 160 &&
+        isValidRole(data.role) &&
+        data.active is bool &&
+        data.invitedBy is string && data.invitedBy.size() >= 1 && data.invitedBy.size() <= 128 &&
+        data.updatedAt == request.time;
+    }
+
+    match /adminInvites/{inviteId} {
+      allow get: if isValidId(inviteId) && (
+        isSuperAdmin() ||
+        (isSignedIn() && inviteId == request.auth.token.email.lower().replace('[^a-z0-9_\\-]', '_'))
+      );
+      allow list: if isSuperAdmin();
+      allow create: if isValidId(inviteId) && isSuperAdmin() && isValidAdminInvite(incoming()) &&
+        incoming().invitedBy == request.auth.uid && incoming().createdAt == request.time;
+      allow update: if isValidId(inviteId) && isSuperAdmin() && isValidAdminInvite(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().invitedBy == existing().invitedBy &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['role', 'active', 'updatedAt']);
+      allow delete: if isValidId(inviteId) && isSuperAdmin();
+    }
+
+    // ── Admin User Profiles ──
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'active', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'role', 'active', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+        data.email is string && data.email.size() >= 5 && data.email.size() <= 160 &&
+        isOptionalString(data, 'displayName', 120) &&
+        isOptionalString(data, 'photoURL', 1000) &&
+        isValidRole(data.role) &&
+        data.active is bool &&
+        data.updatedAt == request.time;
+    }
+
+    function inviteDocId(email) {
+      return email.lower().replace('[^a-z0-9_\\-]', '_');
+    }
+
+    function hasMatchingInvite(email, role) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/adminInvites/$(inviteDocId(email))) &&
+        get(/databases/$(database)/documents/adminInvites/$(inviteDocId(email))).data.active == true &&
+        get(/databases/$(database)/documents/adminInvites/$(inviteDocId(email))).data.email.lower() == email.lower() &&
+        get(/databases/$(database)/documents/adminInvites/$(inviteDocId(email))).data.role == role;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isSuperAdmin() || (isSignedIn() && request.auth.uid == userId));
+      allow list: if isSuperAdmin();
+      allow create: if isValidId(userId) && isValidUserProfile(incoming()) &&
+        incoming().createdAt == request.time && (
+          isSuperAdmin() ||
+          (
+            isSignedIn() &&
+            request.auth.uid == userId &&
+            incoming().uid == request.auth.uid &&
+            incoming().email.lower() == request.auth.token.email.lower() &&
+            incoming().active == true &&
+            (
+              (isBootstrappedSuperAdmin() && incoming().role == 'superAdmin') ||
+              hasMatchingInvite(request.auth.token.email, incoming().role)
+            )
+          )
+        );
+      allow update: if isValidId(userId) && isValidUserProfile(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().uid == existing().uid &&
+        incoming().email == existing().email && (
+          isSuperAdmin() ||
+          (
+            isSignedIn() &&
+            request.auth.uid == userId &&
+            incoming().role == existing().role &&
+            incoming().active == existing().active &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(userId) && isSuperAdmin();
+    }
+
+    // ── Immutable Audit Logs ──
+    function isValidAuditLog(data) {
+      return data.keys().hasAll([
+        'actorUid', 'actorEmail', 'actorRole', 'action', 'entityType', 'entityId', 'summary', 'createdAt'
+      ]) && data.keys().hasOnly([
+        'actorUid', 'actorEmail', 'actorRole', 'action', 'entityType', 'entityId', 'summary', 'createdAt'
+      ]) &&
+      data.actorUid == request.auth.uid &&
+      data.actorEmail is string && data.actorEmail.size() >= 3 && data.actorEmail.size() <= 160 &&
+      data.actorRole is string && data.actorRole.size() >= 2 && data.actorRole.size() <= 40 &&
+      data.action is string && data.action.size() >= 2 && data.action.size() <= 80 &&
+      data.entityType is string && data.entityType.size() >= 2 && data.entityType.size() <= 60 &&
+      data.entityId is string && data.entityId.size() >= 1 && data.entityId.size() <= 128 &&
+      data.summary is string && data.summary.size() >= 2 && data.summary.size() <= 400 &&
+      data.createdAt == request.time;
+    }
+
+    match /auditLogs/{logId} {
+      allow get: if isValidId(logId) && isPublisher();
+      allow list: if isPublisher();
+      allow create: if isValidId(logId) && isEditor() && isValidAuditLog(incoming());
+      allow update, delete: if false;
+    }
+
+    // ── Service Causes & Award Categories ──
+    function isValidTaxonomy(data) {
+      return data.keys().hasAll(['name', 'order', 'active', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'description', 'order', 'active', 'createdAt', 'updatedAt']) &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 120 &&
+        isOptionalString(data, 'description', 400) &&
+        data.order is number &&
+        data.active is bool &&
+        data.updatedAt == request.time;
+    }
+
+    match /serviceCategories/{categoryId} {
+      allow get: if isValidId(categoryId);
+      allow list: if true;
+      allow create: if isValidId(categoryId) && isPublisher() && isValidTaxonomy(incoming()) && incoming().createdAt == request.time;
+      allow update: if isValidId(categoryId) && isPublisher() && isValidTaxonomy(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'order', 'active', 'updatedAt']);
+      allow delete: if isValidId(categoryId) && isDeleter();
+    }
+
+    match /awardCategories/{categoryId} {
+      allow get: if isValidId(categoryId);
+      allow list: if true;
+      allow create: if isValidId(categoryId) && isPublisher() && isValidTaxonomy(incoming()) && incoming().createdAt == request.time;
+      allow update: if isValidId(categoryId) && isPublisher() && isValidTaxonomy(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'order', 'active', 'updatedAt']);
+      allow delete: if isValidId(categoryId) && isDeleter();
+    }
+  }
+}

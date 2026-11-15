@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { FolderKanban, Search, RotateCcw } from 'lucide-react';
-import { SERVICE_CATEGORIES } from '../data/brand';
 import { useClubData } from '../context/ClubContext';
 import { filterProjects, paginateItems } from '../utils/clubLogic';
 import type { ProjectStatus } from '../types/club';
@@ -11,12 +10,21 @@ import { EmptyState } from '../components/EmptyState';
 const PAGE_SIZE = 6;
 
 export function ProjectsPage() {
-  const { projects, settings, loading, error } = useClubData();
+  const { projects, settings, serviceCategories, loading, error } = useClubData();
   const [search, setSearch] = useState('');
   const [year, setYear] = useState('all');
   const [category, setCategory] = useState('all');
   const [status, setStatus] = useState<ProjectStatus | 'all'>('all');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const activeCategoryNames = useMemo(
+    () =>
+      serviceCategories
+        .filter((item) => item.active)
+        .sort((a, b) => a.order - b.order)
+        .map((item) => item.name),
+    [serviceCategories],
+  );
 
   const filtered = useMemo(
     () =>
@@ -130,7 +138,7 @@ export function ProjectsPage() {
                 className="w-full min-h-[44px] rounded-xl border border-white/12 bg-[#05070D] px-3.5 text-sm text-slate-100 focus:border-[#E8AF25] focus:outline-none transition-colors"
               >
                 <option value="all">All service categories</option>
-                {SERVICE_CATEGORIES.map((cat) => (
+                {activeCategoryNames.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -208,7 +216,7 @@ export function ProjectsPage() {
               description={
                 hasActiveFilters
                   ? 'Try clearing your search or selecting another Leostic year, service category, or activity status.'
-                  : 'Only projects reviewed and published by approved Leo Club of NIBM officers appear in this public archive. Administrators can publish projects once Firebase is connected.'
+                  : 'Only projects reviewed and published by authorised Leo Club of NIBM officers appear in this public archive.'
               }
               actionLabel={hasActiveFilters ? undefined : 'Open Admin Portal'}
               actionTo={hasActiveFilters ? undefined : '/admin'}

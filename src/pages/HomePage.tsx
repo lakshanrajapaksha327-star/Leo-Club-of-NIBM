@@ -37,6 +37,7 @@ export function HomePage() {
     projects,
     officers,
     publications,
+    news,
     achievements,
     loading,
   } = useClubData();
@@ -44,15 +45,19 @@ export function HomePage() {
   const [slideIndex, setSlideIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
+  const slides =
+    settings.heroSlides && settings.heroSlides.length > 0 ? settings.heroSlides : HERO_SLIDES;
+
   useEffect(() => {
-    if (prefersReducedMotion || !isAutoPlaying) return;
+    if (prefersReducedMotion || !isAutoPlaying || slides.length <= 1) return;
     const timer = window.setInterval(() => {
-      setSlideIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+      setSlideIndex((prev) => (prev + 1) % slides.length);
     }, SLIDE_DURATION_MS);
     return () => window.clearInterval(timer);
-  }, [prefersReducedMotion, isAutoPlaying]);
+  }, [prefersReducedMotion, isAutoPlaying, slides.length]);
 
-  const activeSlide = HERO_SLIDES[slideIndex];
+  const safeSlideIndex = slideIndex % slides.length;
+  const activeSlide = slides[safeSlideIndex] || HERO_SLIDES[0];
 
   const publishedProjects = projects.filter((p) => p.publicationStatus === 'published');
   const featuredProjects = publishedProjects.filter((p) => p.featured).slice(0, 3);
@@ -67,13 +72,21 @@ export function HomePage() {
     .filter((p) => p.publicationStatus === 'published')
     .slice(0, 3);
 
+  const latestNews = news
+    .filter((n) => n.publicationStatus === 'published')
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 3);
+
   const visibleAwards = achievements
     .filter((a) => a.visible && a.leosticYear === settings.currentLeosticYear)
     .slice(0, 4);
 
   const marqueeItems =
-    latestPublications.length > 0
-      ? latestPublications.map((m) => `${m.title} · ${m.leosticYear}`)
+    latestPublications.length > 0 || latestNews.length > 0
+      ? [
+          ...latestPublications.map((m) => `${m.title} · ${m.leosticYear}`),
+          ...latestNews.map((n) => `${n.title} · ${n.date}`),
+        ]
       : [
           `Leostic Year ${settings.currentLeosticYear}`,
           'Leo Club of NIBM',
@@ -105,8 +118,8 @@ export function HomePage() {
         ];
 
   const goPrevSlide = () =>
-    setSlideIndex((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
-  const goNextSlide = () => setSlideIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+    setSlideIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  const goNextSlide = () => setSlideIndex((prev) => (prev + 1) % slides.length);
 
   return (
     <PageShell>
@@ -154,10 +167,10 @@ export function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center w-full">
             <div className="lg:col-span-7 space-y-6">
               <div className="flex items-center gap-4 text-xs sm:text-sm font-medium text-[#F3D754] tabular-nums">
-                <span>26/27</span>
+                <span>{settings.currentLeosticYear}</span>
                 <span className="h-3.5 w-px bg-white/25" aria-hidden="true" />
                 <span>
-                  0{slideIndex + 1} / 0{HERO_SLIDES.length}
+                  0{safeSlideIndex + 1} / 0{slides.length}
                 </span>
                 <span className="h-3.5 w-px bg-white/25 hidden sm:inline-block" aria-hidden="true" />
                 <span className="hidden sm:inline text-slate-200">{activeSlide.kicker}</span>
@@ -267,8 +280,8 @@ export function HomePage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-3 shrink-0">
               <div role="tablist" aria-label="Slide selectors" className="flex items-center gap-2">
-                {HERO_SLIDES.map((s, idx) => {
-                  const isActive = slideIndex === idx;
+                {slides.map((s, idx) => {
+                  const isActive = safeSlideIndex === idx;
                   return (
                     <button
                       key={s.id}
@@ -338,7 +351,7 @@ export function HomePage() {
             </div>
 
             <span className="hidden md:inline text-[11px] text-slate-400 whitespace-nowrap shrink-0">
-              Demo reel
+              {activeSlide.isPlaceholder ? 'Placeholder backdrop' : 'Club highlight'}
             </span>
           </div>
         </div>
@@ -662,7 +675,7 @@ export function HomePage() {
             )}
           </div>
 
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Link
               to="/projects"
               className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-6 py-2.5 text-sm font-semibold text-white hover:border-[#F3D754] hover:text-[#F3D754] hover:-translate-y-0.5 transition-all duration-200"
@@ -670,9 +683,69 @@ export function HomePage() {
               <span>View All Projects</span>
               <ArrowUpRight className="w-4 h-4" aria-hidden="true" />
             </Link>
+            <Link
+              to="/news"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.02] px-6 py-2.5 text-sm font-medium text-slate-200 hover:border-[#E8AF25]/60 hover:text-[#F3D754] hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <span>Club News & Notices</span>
+              <ArrowUpRight className="w-4 h-4" aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </section>
+
+      {latestNews.length > 0 && (
+        <section className="py-14 border-b border-white/10 bg-[#05070D]">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold tracking-wide text-[#F3D754]">
+                  Official Dispatches
+                </p>
+                <h2 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-white">
+                  Latest News & Notices
+                </h2>
+              </div>
+              <Link
+                to="/news"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#F3D754] hover:underline"
+              >
+                <span>All news updates</span>
+                <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {latestNews.map((item) => (
+                <article
+                  key={item.id}
+                  className="rounded-2xl border border-white/10 bg-[#0B0F1A] p-6 flex flex-col justify-between space-y-4 hover:border-[#E8AF25]/45 transition-colors"
+                >
+                  <div className="space-y-2">
+                    <div className="text-xs text-[#F3D754] tabular-nums">
+                      {item.date} · {item.leosticYear}
+                    </div>
+                    <h3 className="font-display text-lg font-bold text-white">
+                      <Link to={`/news/${item.slug}`} className="hover:text-[#F3D754] transition-colors">
+                        {item.title}
+                      </Link>
+                    </h3>
+                    <p className="text-sm text-slate-300 line-clamp-3 leading-relaxed">
+                      {item.excerpt}
+                    </p>
+                  </div>
+                  <Link
+                    to={`/news/${item.slug}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#F3D754] hover:underline"
+                  >
+                    <span>Read update</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* SECTION 6: Latest Achievement — Our Key Awards */}
       <section className="py-16 md:py-24 border-b border-white/10 bg-[#05070D]">

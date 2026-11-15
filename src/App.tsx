@@ -14,7 +14,11 @@ import { AwardsPage } from './pages/AwardsPage';
 import { JoinPage } from './pages/JoinPage';
 import { ContactPage } from './pages/ContactPage';
 import { AdminPage } from './pages/AdminPage';
+import { AdminLoginPage } from './pages/AdminLoginPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { NewsPage } from './pages/NewsPage';
+import { NewsDetailPage } from './pages/NewsDetailPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 import { EmptyState } from './components/EmptyState';
 
 function AnimatedRoutes() {
@@ -30,10 +34,14 @@ function AnimatedRoutes() {
         <Route path="/team" element={<TeamPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/publications" element={<PublicationsPage />} />
+        <Route path="/news" element={<NewsPage />} />
+        <Route path="/news/:slug" element={<NewsDetailPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/awards" element={<AwardsPage />} />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route
           path="*"

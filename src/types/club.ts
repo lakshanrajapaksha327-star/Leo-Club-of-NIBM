@@ -1,6 +1,13 @@
 export type ProjectStatus = 'planned' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 
-export type PublicationStatus = 'draft' | 'submitted' | 'published' | 'archived';
+export type PublicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'underReview'
+  | 'approved'
+  | 'published'
+  | 'archived'
+  | 'rejected';
 
 export type MediaType = 'image' | 'video';
 
@@ -20,6 +27,8 @@ export interface ProjectMedia {
   type: MediaType;
   caption: string;
   altText: string;
+  photoCredit?: string;
+  consentConfirmed?: boolean;
   order: number;
 }
 
@@ -40,8 +49,11 @@ export interface ProjectStorySections {
   background?: string;
   need?: string;
   objectives?: string;
+  planning?: string;
+  implementation?: string;
   whatWeDid?: string;
   outcomes?: string;
+  futurePhases?: string;
   reflection?: string;
 }
 
@@ -69,6 +81,15 @@ export interface Project {
   partners: string[];
   projectChair?: string;
   organisers?: string[];
+  participatingLeos?: string;
+  beneficiaries?: string;
+  volunteerHours?: string;
+  fundsDisplayApproved?: boolean;
+  evidenceNote?: string;
+  reviewNote?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  publishedAt?: string;
   featured: boolean;
   createdAt?: number;
   updatedAt?: number;
@@ -90,6 +111,8 @@ export interface ClubEvent {
   registrationUrl?: string;
   createdAt?: number;
   updatedAt?: number;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface Officer {
@@ -103,13 +126,17 @@ export interface Officer {
   visible: boolean;
   createdAt?: number;
   updatedAt?: number;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface GalleryPhoto {
   id: string;
   url: string;
+  storagePath?: string;
   caption: string;
   altText: string;
+  photoCredit?: string;
   order: number;
 }
 
@@ -122,9 +149,12 @@ export interface GalleryAlbum {
   coverUrl: string;
   coverAlt: string;
   photos: GalleryPhoto[];
+  consentConfirmed: boolean;
   publicationStatus: PublicationStatus;
   createdAt?: number;
   updatedAt?: number;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface Publication {
@@ -140,6 +170,8 @@ export interface Publication {
   publicationStatus: PublicationStatus;
   createdAt?: number;
   updatedAt?: number;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface NewsArticle {
@@ -154,6 +186,8 @@ export interface NewsArticle {
   publicationStatus: PublicationStatus;
   createdAt?: number;
   updatedAt?: number;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface Achievement {
@@ -167,6 +201,8 @@ export interface Achievement {
   visible: boolean;
   createdAt?: number;
   updatedAt?: number;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface MembershipEnquiry {
@@ -176,8 +212,59 @@ export interface MembershipEnquiry {
   programme: string;
   batch: string;
   reason: string;
+  consentAccepted: boolean;
   status: 'new' | 'reviewed' | 'contacted' | 'archived';
+  internalNotes?: string;
   createdAt: number;
+  updatedAt?: number;
+}
+
+export interface ContactMessage {
+  id?: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  consentAccepted: boolean;
+  status: 'new' | 'reviewed' | 'replied' | 'archived';
+  internalNotes?: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface HeroSlide {
+  id: string;
+  kicker: string;
+  headline: string;
+  subline: string;
+  image: string;
+  imageAlt: string;
+  isPlaceholder?: boolean;
+  motionVariant?: 'primary' | 'alt';
+}
+
+export interface ClubYear {
+  id: string;
+  year: string;
+  theme?: string;
+  status: 'active' | 'archived';
+  startDate?: string;
+  endDate?: string;
+  summary?: string;
+  isCurrent: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+  updatedBy?: string;
+}
+
+export interface TaxonomyItem {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+  active: boolean;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 export interface SiteSettings {
@@ -202,6 +289,10 @@ export interface SiteSettings {
     youtube?: string;
   };
   verifiedImpactMetrics: ProjectMetric[];
+  heroSlides?: HeroSlide[];
+  privacyUpdatedAt?: string;
+  updatedAt?: number;
+  updatedBy?: string;
 }
 
 export interface UserProfile {
@@ -211,4 +302,28 @@ export interface UserProfile {
   photoURL?: string;
   role: UserRole;
   active: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface AdminInvite {
+  id: string;
+  email: string;
+  role: UserRole;
+  active: boolean;
+  invitedBy: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface AuditLog {
+  id: string;
+  actorUid: string;
+  actorEmail: string;
+  actorRole: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  summary: string;
+  createdAt: number;
 }

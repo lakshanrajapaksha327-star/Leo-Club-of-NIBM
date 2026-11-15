@@ -24,6 +24,7 @@ const INITIATIVES_GROUP: DropdownGroup = {
   items: [
     { label: 'Projects Archive', to: '/projects', description: 'Editorial project stories and impact' },
     { label: 'Events & Calendar', to: '/events', description: 'Upcoming meetings and service drives' },
+    { label: 'News & Updates', to: '/news', description: 'Official dispatches, notices, and recaps' },
     { label: 'Photo Gallery', to: '/gallery', description: 'Approved photography from club service' },
   ],
 };
@@ -285,38 +286,42 @@ export function Layout({ children }: { children: React.ReactNode }) {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               aria-label="Mobile navigation"
-              className="lg:hidden overflow-hidden border-t border-white/10 bg-[#080B13]/98 backdrop-blur-xl px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto"
+              className="lg:hidden overflow-hidden border-t border-white/10 bg-[#080B13]/98 backdrop-blur-xl max-h-[calc(100dvh-4.25rem)] flex flex-col"
             >
-              {[
-                { label: 'Home', to: '/' },
-                { label: 'About Us', to: '/about' },
-                { label: 'Executive Board', to: '/team' },
-                { label: 'Projects Archive', to: '/projects' },
-                { label: 'Events & Calendar', to: '/events' },
-                { label: 'Photo Gallery', to: '/gallery' },
-                { label: 'Magazines & Publications', to: '/publications' },
-                { label: 'Club History', to: '/history' },
-                { label: 'Awards & Achievements', to: '/awards' },
-                { label: 'Contact Us', to: '/contact' },
-                { label: 'Admin Portal', to: '/admin' },
-              ].map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === '/'}
-                  className={({ isActive }) =>
-                    `flex items-center min-h-[44px] rounded-xl px-3.5 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#7A184D]/30 border border-[#E8AF25]/35 text-[#F3D754]'
-                        : 'text-slate-200 hover:bg-white/[0.05]'
-                    }`
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
+              <div className="overflow-y-auto px-4 pt-3 pb-2 space-y-0.5">
+                {[
+                  { label: 'Home', to: '/' },
+                  { label: 'About Us', to: '/about' },
+                  { label: 'Executive Board', to: '/team' },
+                  { label: 'Projects Archive', to: '/projects' },
+                  { label: 'Events & Calendar', to: '/events' },
+                  { label: 'News & Updates', to: '/news' },
+                  { label: 'Photo Gallery', to: '/gallery' },
+                  { label: 'Magazines & Publications', to: '/publications' },
+                  { label: 'Club History', to: '/history' },
+                  { label: 'Awards & Achievements', to: '/awards' },
+                  { label: 'Contact Us', to: '/contact' },
+                  { label: 'Privacy & Consent', to: '/privacy' },
+                  { label: 'Admin Portal', to: '/admin' },
+                ].map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === '/'}
+                    className={({ isActive }) =>
+                      `flex items-center min-h-[40px] rounded-xl px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-[#7A184D]/30 border border-[#E8AF25]/35 text-[#F3D754]'
+                          : 'text-slate-200 hover:bg-white/[0.05]'
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
 
-              <div className="pt-3 mt-2 border-t border-white/10">
+              <div className="shrink-0 px-4 py-3 border-t border-white/10 bg-[#080B13]">
                 <Link
                   to="/join"
                   className="flex min-h-[44px] w-full items-center justify-center rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-[#05070D] hover:bg-[#F3D754] transition-colors"
@@ -440,6 +445,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <ul className="space-y-2 text-sm text-slate-300">
                 <li><Link to="/projects" className="hover:text-[#F3D754] transition-colors">Projects</Link></li>
                 <li><Link to="/events" className="hover:text-[#F3D754] transition-colors">Events</Link></li>
+                <li><Link to="/news" className="hover:text-[#F3D754] transition-colors">News & Updates</Link></li>
                 <li><Link to="/gallery" className="hover:text-[#F3D754] transition-colors">Gallery</Link></li>
                 <li><Link to="/publications" className="hover:text-[#F3D754] transition-colors">Magazines</Link></li>
               </ul>
@@ -457,9 +463,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 {settings.officialPhone && (
                   <p className="text-slate-300 tabular-nums">{settings.officialPhone}</p>
                 )}
+                {Object.entries(settings.socialLinks || {}).some(([, url]) => Boolean(url && url.trim())) && (
+                  <div className="pt-1 flex flex-wrap gap-3 text-xs">
+                    {(
+                      [
+                        ['Facebook', settings.socialLinks?.facebook],
+                        ['Instagram', settings.socialLinks?.instagram],
+                        ['LinkedIn', settings.socialLinks?.linkedin],
+                        ['YouTube', settings.socialLinks?.youtube],
+                      ] as const
+                    )
+                      .filter(([, url]) => Boolean(url && /^https?:\/\//i.test(url.trim())))
+                      .map(([label, url]) => (
+                        <a
+                          key={label}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-slate-300 hover:text-[#F3D754] underline underline-offset-4 transition-colors"
+                        >
+                          {label}
+                        </a>
+                      ))}
+                  </div>
+                )}
                 <div className="pt-2 flex flex-wrap items-center gap-4">
                   <Link to="/contact" className="text-sm font-medium text-[#F3D754] hover:underline">
                     Contact Us
+                  </Link>
+                  <Link to="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">
+                    Privacy
                   </Link>
                   <Link
                     to="/admin"

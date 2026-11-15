@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -44,17 +44,39 @@ export function ProjectDetailPage() {
       .slice(0, 3);
   }, [publishedProjects, project]);
 
-  const galleryPhotos: LightboxPhoto[] = useMemo(() => {
+  const galleryItems = useMemo(() => {
     if (!project) return [];
     return project.media
       .filter((m) => m.type === 'image')
-      .sort((a, b) => a.order - b.order)
-      .map((m) => ({
+      .sort((a, b) => a.order - b.order);
+  }, [project]);
+
+  const galleryPhotos: LightboxPhoto[] = useMemo(
+    () =>
+      galleryItems.map((m) => ({
         id: m.id,
         url: m.url,
-        caption: m.caption,
-        altText: m.altText || project.title,
-      }));
+        caption: m.photoCredit ? `${m.caption ? `${m.caption} — ` : ''}Credit: ${m.photoCredit}` : m.caption,
+        altText: m.altText || project?.title || 'Project photograph',
+      })),
+    [galleryItems, project?.title],
+  );
+
+  useEffect(() => {
+    if (!project) return;
+    const prevTitle = document.title;
+    document.title = `${project.title} | Projects | Leo Club of NIBM`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const prevDesc = metaDesc?.getAttribute('content') || '';
+    if (metaDesc && project.summary) {
+      metaDesc.setAttribute('content', project.summary);
+    }
+    return () => {
+      document.title = prevTitle;
+      if (metaDesc && prevDesc) {
+        metaDesc.setAttribute('content', prevDesc);
+      }
+    };
   }, [project]);
 
   const uploadedVideos = useMemo(
@@ -204,9 +226,12 @@ export function ProjectDetailPage() {
                   { heading: 'Background', body: storySections?.background },
                   { heading: 'Need', body: storySections?.need },
                   { heading: 'Objectives', body: storySections?.objectives },
+                  { heading: 'Planning', body: storySections?.planning },
+                  { heading: 'Implementation', body: storySections?.implementation },
                   { heading: 'What We Did', body: storySections?.whatWeDid },
                   { heading: 'Outcomes', body: storySections?.outcomes },
-                  { heading: 'Reflection & Next Steps', body: storySections?.reflection },
+                  { heading: 'Reflection & Lessons', body: storySections?.reflection },
+                  { heading: 'Future Phases', body: storySections?.futurePhases },
                 ]
                   .filter((sec) => sec.body && sec.body.trim().length > 0)
                   .map((sec) => (
@@ -227,13 +252,13 @@ export function ProjectDetailPage() {
             )}
 
             {/* Photo Gallery */}
-            {galleryPhotos.length > 0 && (
+            {galleryItems.length > 0 && (
               <section className="pt-8 border-t border-white/10">
                 <h2 className="font-display text-xl sm:text-2xl font-bold text-white mb-4">
                   Project Photo Gallery
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {galleryPhotos.map((photo, idx) => (
+                  {galleryItems.map((photo, idx) => (
                     <button
                       key={photo.id}
                       type="button"
@@ -243,12 +268,19 @@ export function ProjectDetailPage() {
                       <div className="aspect-[4/3] overflow-hidden">
                         <BrandImage
                           src={photo.url}
-                          alt={photo.altText}
+                          alt={photo.altText || project.title}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                         />
                       </div>
-                      {photo.caption && (
-                        <div className="p-3 text-xs text-slate-300">{photo.caption}</div>
+                      {(photo.caption || photo.photoCredit) && (
+                        <div className="p-3 text-xs text-slate-300 space-y-1">
+                          {photo.caption && <div>{photo.caption}</div>}
+                          {photo.photoCredit && (
+                            <div className="text-[11px] text-slate-400">
+                              Photo credit: {photo.photoCredit}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </button>
                   ))}
@@ -301,12 +333,39 @@ export function ProjectDetailPage() {
 
           {/* Right Sidebar: Impact Metrics, Organisers, Partners, Approved Docs, Share */}
           <aside className="lg:col-span-4 space-y-6">
-            {project.metrics.length > 0 && (
+            {(project.metrics.length > 0 ||
+              project.beneficiaries ||
+              project.participatingLeos ||
+              project.volunteerHours) && (
               <div className="rounded-2xl border border-white/10 bg-[#0B0F1A] p-6 space-y-4">
                 <h2 className="font-display text-base font-semibold text-white">
                   Verified Impact
                 </h2>
                 <div className="grid grid-cols-1 gap-3">
+                  {project.beneficiaries && (
+                    <div className="rounded-xl border border-white/10 bg-[#05070D] p-4">
+                      <div className="font-display text-2xl font-bold text-[#F3D754] tabular-nums">
+                        {project.beneficiaries}
+                      </div>
+                      <div className="text-xs text-slate-300 mt-1">Beneficiaries Reached</div>
+                    </div>
+                  )}
+                  {project.participatingLeos && (
+                    <div className="rounded-xl border border-white/10 bg-[#05070D] p-4">
+                      <div className="font-display text-2xl font-bold text-[#F3D754] tabular-nums">
+                        {project.participatingLeos}
+                      </div>
+                      <div className="text-xs text-slate-300 mt-1">Participating Leos</div>
+                    </div>
+                  )}
+                  {project.volunteerHours && (
+                    <div className="rounded-xl border border-white/10 bg-[#05070D] p-4">
+                      <div className="font-display text-2xl font-bold text-[#F3D754] tabular-nums">
+                        {project.volunteerHours}
+                      </div>
+                      <div className="text-xs text-slate-300 mt-1">Volunteer Hours</div>
+                    </div>
+                  )}
                   {project.metrics.map((m) => (
                     <div
                       key={m.label}

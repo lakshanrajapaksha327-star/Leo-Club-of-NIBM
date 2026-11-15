@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CheckCircle2, Info, ShieldCheck } from 'lucide-react';
 import { useClubData } from '../context/ClubContext';
 import { submitMembershipEnquiry } from '../services/repository';
@@ -13,10 +14,11 @@ export function JoinPage() {
     programme: '',
     batch: '',
     reason: '',
+    consentAccepted: false,
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'info'; message: string } | null>(
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
 
@@ -34,9 +36,16 @@ export function JoinPage() {
       const result = await submitMembershipEnquiry(form);
       if (result.accepted) {
         setFeedback({ type: 'success', message: result.message });
-        setForm({ fullName: '', email: '', programme: '', batch: '', reason: '' });
+        setForm({
+          fullName: '',
+          email: '',
+          programme: '',
+          batch: '',
+          reason: '',
+          consentAccepted: false,
+        });
       } else {
-        setFeedback({ type: 'info', message: result.message });
+        setFeedback({ type: 'error', message: result.message });
       }
     } finally {
       setSubmitting(false);
@@ -102,10 +111,10 @@ export function JoinPage() {
               </h2>
 
               {!backendStatus.firestoreConnected && (
-                <div className="rounded-xl border border-[#E8AF25]/30 bg-[#E8AF25]/10 px-4 py-3 text-xs text-slate-200 flex items-start gap-2.5">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100 flex items-start gap-2.5">
                   <Info className="w-4 h-4 text-[#F3D754] shrink-0 mt-0.5" aria-hidden="true" />
                   <span>
-                    Backend notice: Firebase Firestore is not connected yet. Form validation is active, and live database submission will activate once Step 2 connects Firebase.
+                    Database connection is unavailable in this environment. Please contact club officers directly if submission fails.
                   </span>
                 </div>
               )}
@@ -195,13 +204,35 @@ export function JoinPage() {
                 )}
               </div>
 
+              <div>
+                <label className="flex items-start gap-3 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    id="join-consent"
+                    type="checkbox"
+                    checked={form.consentAccepted}
+                    onChange={(e) => setForm({ ...form, consentAccepted: e.target.checked })}
+                    className="mt-0.5 h-4 w-4 rounded border-white/25 bg-[#05070D] text-[#E8AF25] focus:ring-[#E8AF25]"
+                  />
+                  <span>
+                    I consent to the Leo Club of NIBM Executive Committee privately reviewing these details for membership orientation in accordance with our{' '}
+                    <Link to="/privacy" className="text-[#F3D754] underline">
+                      Privacy & Consent Policy
+                    </Link>
+                    .
+                  </span>
+                </label>
+                {errors.consentAccepted && (
+                  <p className="mt-1.5 text-xs text-red-400">{errors.consentAccepted}</p>
+                )}
+              </div>
+
               {feedback && (
                 <div
                   role="status"
                   className={`rounded-xl border px-4 py-3 text-sm ${
                     feedback.type === 'success'
                       ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-                      : 'border-[#E8AF25]/35 bg-[#E8AF25]/10 text-slate-100'
+                      : 'border-red-500/35 bg-red-500/10 text-red-200'
                   }`}
                 >
                   {feedback.message}

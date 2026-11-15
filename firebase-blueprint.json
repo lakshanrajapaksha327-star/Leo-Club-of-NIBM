@@ -1,0 +1,377 @@
+{
+  "entities": {
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global club configuration, theme, contact info, hero slides, and verified metrics for Leo Club of NIBM.",
+      "type": "object",
+      "properties": {
+        "clubName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "institutionName": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "districtName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "multipleDistrictName": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "currentLeosticYear": { "type": "string", "minLength": 4, "maxLength": 20, "pattern": "^[0-9]{4}/[0-9]{2}$" },
+        "availableYears": { "type": "array", "description": "Configured Leostic years" },
+        "annualTheme": { "type": "string", "maxLength": 200 },
+        "charterDate": { "type": "string", "maxLength": 60 },
+        "mission": { "type": "string", "maxLength": 2000 },
+        "vision": { "type": "string", "maxLength": 2000 },
+        "clubHistory": { "type": "string", "maxLength": 10000 },
+        "officialEmail": { "type": "string", "maxLength": 160 },
+        "officialPhone": { "type": "string", "maxLength": 40 },
+        "campusAddress": { "type": "string", "maxLength": 300 },
+        "socialLinks": { "type": "object" },
+        "verifiedImpactMetrics": { "type": "array" },
+        "heroSlides": { "type": "array" },
+        "privacyUpdatedAt": { "type": "string", "maxLength": 40 },
+        "updatedAt": { "type": "object", "format": "date-time" },
+        "updatedBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["clubName", "institutionName", "districtName", "multipleDistrictName", "currentLeosticYear", "availableYears"]
+    },
+    "ClubYear": {
+      "title": "ClubYear",
+      "description": "Preserved Leostic year configuration and annual theme record.",
+      "type": "object",
+      "properties": {
+        "year": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "theme": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["active", "archived"] },
+        "startDate": { "type": "string", "maxLength": 40 },
+        "endDate": { "type": "string", "maxLength": 40 },
+        "summary": { "type": "string", "maxLength": 3000 },
+        "isCurrent": { "type": "boolean" },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" },
+        "updatedBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["year", "status", "isCurrent", "createdAt", "updatedAt", "updatedBy"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Editorial project story with separated activity status and publication workflow status.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "slug": { "type": "string", "minLength": 2, "maxLength": 120, "pattern": "^[a-z0-9-]+$" },
+        "summary": { "type": "string", "minLength": 10, "maxLength": 600 },
+        "story": { "type": "string", "maxLength": 20000 },
+        "storySections": { "type": "object" },
+        "category": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "secondaryCategory": { "type": "string", "maxLength": 120 },
+        "leosticYear": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "startDate": { "type": "string", "minLength": 4, "maxLength": 40 },
+        "endDate": { "type": "string", "maxLength": 40 },
+        "location": { "type": "string", "maxLength": 180 },
+        "status": { "type": "string", "enum": ["planned", "upcoming", "ongoing", "completed", "cancelled"] },
+        "publicationStatus": { "type": "string", "enum": ["draft", "submitted", "underReview", "approved", "published", "archived", "rejected"] },
+        "coverImage": { "type": "string", "maxLength": 1000 },
+        "coverAlt": { "type": "string", "maxLength": 300 },
+        "media": { "type": "array" },
+        "videoUrls": { "type": "array" },
+        "documents": { "type": "array" },
+        "metrics": { "type": "array" },
+        "partners": { "type": "array" },
+        "projectChair": { "type": "string", "maxLength": 140 },
+        "organisers": { "type": "array" },
+        "participatingLeos": { "type": "string", "maxLength": 60 },
+        "beneficiaries": { "type": "string", "maxLength": 60 },
+        "volunteerHours": { "type": "string", "maxLength": 60 },
+        "fundsDisplayApproved": { "type": "boolean" },
+        "evidenceNote": { "type": "string", "maxLength": 1000 },
+        "reviewNote": { "type": "string", "maxLength": 1000 },
+        "reviewedBy": { "type": "string", "maxLength": 128 },
+        "reviewedAt": { "type": "string", "maxLength": 40 },
+        "publishedAt": { "type": "string", "maxLength": 40 },
+        "featured": { "type": "boolean" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "updatedBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["title", "slug", "summary", "category", "leosticYear", "startDate", "status", "publicationStatus", "featured", "createdBy", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "ClubEvent": {
+      "title": "ClubEvent",
+      "description": "Club event, general meeting, or service drive schedule.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "summary": { "type": "string", "minLength": 5, "maxLength": 1200 },
+        "date": { "type": "string", "minLength": 4, "maxLength": 40 },
+        "endDate": { "type": "string", "maxLength": 40 },
+        "location": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "leosticYear": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "status": { "type": "string", "enum": ["upcoming", "completed", "cancelled"] },
+        "publicationStatus": { "type": "string", "enum": ["draft", "submitted", "underReview", "approved", "published", "archived", "rejected"] },
+        "posterUrl": { "type": "string", "maxLength": 1000 },
+        "registrationUrl": { "type": "string", "maxLength": 1000 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["title", "summary", "date", "location", "leosticYear", "status", "publicationStatus", "createdBy", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Officer": {
+      "title": "Officer",
+      "description": "Executive Board member record per Leostic year.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "position": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "leosticYear": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "biography": { "type": "string", "maxLength": 1200 },
+        "photoUrl": { "type": "string", "maxLength": 1000 },
+        "displayOrder": { "type": "number" },
+        "visible": { "type": "boolean" },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["name", "position", "leosticYear", "displayOrder", "visible", "createdBy", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "GalleryAlbum": {
+      "title": "GalleryAlbum",
+      "description": "Consent-verified club photography album.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "leosticYear": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "date": { "type": "string", "maxLength": 40 },
+        "coverUrl": { "type": "string", "maxLength": 1000 },
+        "coverAlt": { "type": "string", "maxLength": 300 },
+        "photos": { "type": "array" },
+        "consentConfirmed": { "type": "boolean" },
+        "publicationStatus": { "type": "string", "enum": ["draft", "submitted", "underReview", "approved", "published", "archived", "rejected"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["title", "leosticYear", "date", "coverUrl", "coverAlt", "photos", "consentConfirmed", "publicationStatus", "createdBy", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "NewsArticle": {
+      "title": "NewsArticle",
+      "description": "Club live update or news dispatch.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "slug": { "type": "string", "minLength": 2, "maxLength": 120, "pattern": "^[a-z0-9-]+$" },
+        "excerpt": { "type": "string", "minLength": 10, "maxLength": 500 },
+        "body": { "type": "string", "minLength": 10, "maxLength": 20000 },
+        "date": { "type": "string", "minLength": 4, "maxLength": 40 },
+        "leosticYear": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "coverUrl": { "type": "string", "maxLength": 1000 },
+        "publicationStatus": { "type": "string", "enum": ["draft", "submitted", "underReview", "approved", "published", "archived", "rejected"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["title", "slug", "excerpt", "body", "date", "leosticYear", "publicationStatus", "createdBy", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Publication": {
+      "title": "Publication",
+      "description": "Official club magazine, newsletter, or annual report.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "issue": { "type": "string", "maxLength": 80 },
+        "type": { "type": "string", "enum": ["newsletter", "annual-report", "bulletin"] },
+        "description": { "type": "string", "minLength": 5, "maxLength": 1000 },
+        "date": { "type": "string", "minLength": 4, "maxLength": 40 },
+        "leosticYear": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "coverUrl": { "type": "string", "maxLength": 1000 },
+        "pdfUrl": { "type": "string", "maxLength": 1000 },
+        "publicationStatus": { "type": "string", "enum": ["draft", "submitted", "underReview", "approved", "published", "archived", "rejected"] },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["title", "type", "description", "date", "leosticYear", "publicationStatus", "createdBy", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "description": "Verified club or officer award citation.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "awardBody": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "category": { "type": "string", "maxLength": 120 },
+        "leosticYear": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "date": { "type": "string", "maxLength": 40 },
+        "description": { "type": "string", "maxLength": 1500 },
+        "visible": { "type": "boolean" },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["title", "awardBody", "leosticYear", "visible", "createdBy", "updatedBy", "createdAt", "updatedAt"]
+    },
+    "MembershipEnquiry": {
+      "title": "MembershipEnquiry",
+      "description": "Private student membership enquiry submitted via public Join form.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "programme": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "batch": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "reason": { "type": "string", "minLength": 15, "maxLength": 2000 },
+        "consentAccepted": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["new", "reviewed", "contacted", "archived"] },
+        "internalNotes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "programme", "batch", "reason", "consentAccepted", "status", "createdAt"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Private partnership or general enquiry submitted via public Contact form.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "subject": { "type": "string", "minLength": 3, "maxLength": 180 },
+        "message": { "type": "string", "minLength": 10, "maxLength": 3000 },
+        "consentAccepted": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["new", "reviewed", "replied", "archived"] },
+        "internalNotes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["name", "email", "subject", "message", "consentAccepted", "status", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Role-gated club administrator user record.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "email": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "photoURL": { "type": "string", "maxLength": 1000 },
+        "role": { "type": "string", "enum": ["superAdmin", "president", "secretary", "projectEditor", "mediaEditor", "viewer"] },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "active", "createdAt", "updatedAt"]
+    },
+    "AdminInvite": {
+      "title": "AdminInvite",
+      "description": "Pre-approved email allowlist entry granting initial admin role on verified Google Sign-In.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "role": { "type": "string", "enum": ["superAdmin", "president", "secretary", "projectEditor", "mediaEditor", "viewer"] },
+        "active": { "type": "boolean" },
+        "invitedBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["email", "role", "active", "invitedBy", "createdAt", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable record of admin content, role, and workflow mutations.",
+      "type": "object",
+      "properties": {
+        "actorUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "actorEmail": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "actorRole": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "action": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "entityType": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "entityId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "summary": { "type": "string", "minLength": 2, "maxLength": 400 },
+        "createdAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["actorUid", "actorEmail", "actorRole", "action", "entityType", "entityId", "summary", "createdAt"]
+    },
+    "TaxonomyItem": {
+      "title": "TaxonomyItem",
+      "description": "Configurable service cause or award category.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 400 },
+        "order": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "object", "format": "date-time" },
+        "updatedAt": { "type": "object", "format": "date-time" }
+      },
+      "required": ["name", "order", "active", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/siteSettings/{settingId}": {
+      "schema": { "$ref": "#/entities/SiteSettings" },
+      "description": "Global site configuration document (`main`)."
+    },
+    "/clubYears/{yearId}": {
+      "schema": { "$ref": "#/entities/ClubYear" },
+      "description": "Preserved Leostic years and annual themes."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Service projects with separated activity and publication workflows."
+    },
+    "/events/{eventId}": {
+      "schema": { "$ref": "#/entities/ClubEvent" },
+      "description": "Club calendar events."
+    },
+    "/officers/{officerId}": {
+      "schema": { "$ref": "#/entities/Officer" },
+      "description": "Executive Board officers per Leostic year."
+    },
+    "/galleryAlbums/{albumId}": {
+      "schema": { "$ref": "#/entities/GalleryAlbum" },
+      "description": "Consent-verified photography albums."
+    },
+    "/news/{newsId}": {
+      "schema": { "$ref": "#/entities/NewsArticle" },
+      "description": "News updates and club announcements."
+    },
+    "/publications/{publicationId}": {
+      "schema": { "$ref": "#/entities/Publication" },
+      "description": "Official newsletters, magazines, and annual reports."
+    },
+    "/achievements/{achievementId}": {
+      "schema": { "$ref": "#/entities/Achievement" },
+      "description": "Verified awards and recognitions."
+    },
+    "/membershipEnquiries/{enquiryId}": {
+      "schema": { "$ref": "#/entities/MembershipEnquiry" },
+      "description": "Private student membership applications."
+    },
+    "/contactMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/ContactMessage" },
+      "description": "Private contact form submissions."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Admin user profiles and assigned roles."
+    },
+    "/adminInvites/{inviteId}": {
+      "schema": { "$ref": "#/entities/AdminInvite" },
+      "description": "Pre-authorized email allowlist for admin onboarding."
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Immutable admin audit log entries."
+    },
+    "/serviceCategories/{categoryId}": {
+      "schema": { "$ref": "#/entities/TaxonomyItem" },
+      "description": "Configurable MD 306 service causes."
+    },
+    "/awardCategories/{categoryId}": {
+      "schema": { "$ref": "#/entities/TaxonomyItem" },
+      "description": "Configurable award categories."
+    }
+  }
+}

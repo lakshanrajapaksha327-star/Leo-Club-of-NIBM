@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Building2, Info, Mail, Phone } from 'lucide-react';
 import { useClubData } from '../context/ClubContext';
 import { submitContactEnquiry } from '../services/repository';
@@ -7,10 +8,18 @@ import { PageShell } from '../components/Reveal';
 
 export function ContactPage() {
   const { settings, backendStatus } = useClubData();
-  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: '',
+    consentAccepted: false,
+  });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,9 +31,11 @@ export function ContactPage() {
     setSubmitting(true);
     try {
       const res = await submitContactEnquiry(form);
-      setFeedback(res.message);
       if (res.accepted) {
-        setForm({ name: '', email: '', subject: '', message: '' });
+        setFeedback({ type: 'success', message: res.message });
+        setForm({ name: '', email: '', subject: '', message: '', consentAccepted: false });
+      } else {
+        setFeedback({ type: 'error', message: res.message });
       }
     } finally {
       setSubmitting(false);
@@ -103,10 +114,10 @@ export function ContactPage() {
               </h2>
 
               {!backendStatus.firestoreConnected && (
-                <div className="rounded-xl border border-[#E8AF25]/30 bg-[#E8AF25]/10 px-4 py-3 text-xs text-slate-200 flex items-start gap-2.5">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100 flex items-start gap-2.5">
                   <Info className="w-4 h-4 text-[#F3D754] shrink-0 mt-0.5" aria-hidden="true" />
                   <span>
-                    Firebase Firestore is not yet connected. Once Step 2 connects Firebase, messages will be routed directly to club officers.
+                    Database connection is unavailable in this environment. Please reach out using official club contact details if submission fails.
                   </span>
                 </div>
               )}
@@ -172,12 +183,38 @@ export function ContactPage() {
                 )}
               </div>
 
+              <div>
+                <label className="flex items-start gap-3 text-xs text-slate-300 cursor-pointer">
+                  <input
+                    id="contact-consent"
+                    type="checkbox"
+                    checked={form.consentAccepted}
+                    onChange={(e) => setForm({ ...form, consentAccepted: e.target.checked })}
+                    className="mt-0.5 h-4 w-4 rounded border-white/25 bg-[#05070D] text-[#E8AF25] focus:ring-[#E8AF25]"
+                  />
+                  <span>
+                    I consent to the Leo Club of NIBM Executive Committee reviewing and replying to this enquiry under our{' '}
+                    <Link to="/privacy" className="text-[#F3D754] underline">
+                      Privacy & Consent Policy
+                    </Link>
+                    .
+                  </span>
+                </label>
+                {errors.consentAccepted && (
+                  <p className="mt-1.5 text-xs text-red-400">{errors.consentAccepted}</p>
+                )}
+              </div>
+
               {feedback && (
                 <div
                   role="status"
-                  className="rounded-xl border border-[#E8AF25]/35 bg-[#E8AF25]/10 px-4 py-3 text-sm text-slate-100"
+                  className={`rounded-xl border px-4 py-3 text-sm ${
+                    feedback.type === 'success'
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                      : 'border-red-500/35 bg-red-500/10 text-red-200'
+                  }`}
                 >
-                  {feedback}
+                  {feedback.message}
                 </div>
               )}
 

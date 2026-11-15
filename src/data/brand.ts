@@ -1,7 +1,9 @@
-import type { SiteSettings } from '../types/club';
-import demoHeroCampusFellowship from '../assets/images/demo_hero_campus_fellowship_1794747421064.jpg';
-import demoHeroCommunityService from '../assets/images/demo_hero_community_service_1794747421646.jpg';
-import demoHeroLeadershipGala from '../assets/images/demo_hero_leadership_gala_1794747423035.jpg';
+import type { HeroSlide, SiteSettings } from '../types/club';
+import placeholderArchitecturalPaths from '../assets/images/hero_slide_leadership_1794746748735.jpg';
+import placeholderArchitecturalCampus from '../assets/images/hero_slide_service_1794746748611.jpg';
+import placeholderArchitecturalRibbon from '../assets/images/hero_slide_legacy_1794746749851.jpg';
+
+export const BOOTSTRAPPED_SUPER_ADMIN_EMAIL = 'lakshanrajapaksha327@gmail.com';
 
 export const BRAND_ASSETS = {
   clubLogoPrimary: '/assets/brand/Leo_Club_of_NIBM_D7_latest.jpeg',
@@ -15,66 +17,95 @@ export const BRAND_ASSETS = {
   d7BlackLogo: '/assets/brand/Leos_of_D7_Black_Version.png',
 } as const;
 
-export const HERO_SLIDES = [
+export const HERO_SLIDES: HeroSlide[] = [
   {
     id: 'slide-1',
     kicker: 'Leo Club of NIBM · District 306 D7',
     headline: 'Empowering Youth',
     subline: 'Through service and leadership that shapes tomorrow at NIBM, Sri Lanka.',
-    image: demoHeroCampusFellowship,
-    imageAlt: 'Demo scene of university youth leaders collaborating in a sunlit modern auditorium',
-    motionVariant: 'primary' as const,
+    image: placeholderArchitecturalPaths,
+    imageAlt: 'Placeholder — Neutral architectural light-trail backdrop for Leo Club of NIBM',
+    isPlaceholder: true,
+    motionVariant: 'primary',
   },
   {
     id: 'slide-2',
     kicker: 'Leadership · Experience · Opportunity',
     headline: 'Serving With Purpose',
     subline: 'Connecting NIBM undergraduates to community impact across Leo Multiple District 306.',
-    image: demoHeroCommunityService,
-    imageAlt: 'Demo scene of university volunteers planting trees together in golden hour sunlight',
-    motionVariant: 'alt' as const,
+    image: placeholderArchitecturalCampus,
+    imageAlt: 'Placeholder — Neutral architectural glass facade backdrop in dusk light',
+    isPlaceholder: true,
+    motionVariant: 'alt',
   },
   {
     id: 'slide-3',
     kicker: 'Leostic Year 2026/27',
     headline: 'Building Our Legacy',
-    subline: 'Documenting real club projects, publications, fellowship, and district excellence.',
-    image: demoHeroLeadershipGala,
-    imageAlt: 'Demo scene of a university leadership summit hall lit in royal plum and gold',
-    motionVariant: 'primary' as const,
+    subline: 'Documenting verified club projects, publications, fellowship, and district excellence.',
+    image: placeholderArchitecturalRibbon,
+    imageAlt: 'Placeholder — Neutral architectural gold and plum geometric light ribbon backdrop',
+    isPlaceholder: true,
+    motionVariant: 'primary',
   },
-] as const;
+];
 
 export const EXECUTIVE_BOARD_ROLES = [
   {
     key: 'president',
     position: 'President',
     initials: 'PR',
-    note: 'Upload confirmed portrait & name in Admin → Team',
+    note: 'Upload confirmed portrait & name in Admin → Executive Board',
   },
   {
     key: 'secretary',
     position: 'Secretary',
     initials: 'SC',
-    note: 'Upload confirmed portrait & name in Admin → Team',
+    note: 'Upload confirmed portrait & name in Admin → Executive Board',
   },
   {
     key: 'treasurer',
     position: 'Treasurer',
     initials: 'TR',
-    note: 'Upload confirmed portrait & name in Admin → Team',
+    note: 'Upload confirmed portrait & name in Admin → Executive Board',
   },
 ] as const;
 
+/**
+ * 21 Service Causes aligned with Leo Multiple District 306 (Sri Lanka & Maldives).
+ * Administrators can add, edit, reorder, or deactivate items via Admin → Taxonomies.
+ */
 export const SERVICE_CATEGORIES = [
-  'Community Service',
-  'Education & Literacy',
-  'Environment & Sustainability',
-  'Health & Wellbeing',
-  'Youth Leadership',
   'Animal Welfare',
-  'Disaster Relief & Support',
-  'Club Administration & Fellowship',
+  'Clean Water & Sanitation',
+  'Community & Rural Development',
+  'Crime & Drug Prevention',
+  'Cultural & Heritage Preservation',
+  'Diabetes Awareness & Screening',
+  'Differently Abled & Accessibility Support',
+  'Disaster Preparedness & Relief',
+  'Education & Literacy',
+  'Elderly Care & Senior Citizens',
+  'Entrepreneurship & Career Guidance',
+  'Environment & Climate Action',
+  'Gender Equality & Women Empowerment',
+  'Healthcare & Medical Aid',
+  'Hunger Relief & Food Security',
+  'Mental Health & Wellbeing',
+  'Peace, Harmony & Civic Leadership',
+  'Pediatric Cancer Support',
+  'Public Relations & Leo Branding',
+  'Sports & Youth Recreation',
+  'Vision & Sight Preservation',
+] as const;
+
+export const DEFAULT_AWARD_CATEGORIES = [
+  'Most Outstanding Club',
+  'Most Outstanding Service Project',
+  'Best Club President / Secretary / Treasurer',
+  'District & Multiple District Recognition',
+  'Club Excellence & Reporting',
+  'PR, Publications & Editorial',
 ] as const;
 
 export const LEO_PILLARS = [
@@ -145,4 +176,5 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   campusAddress: 'National Institute of Business Management (NIBM), Sri Lanka',
   socialLinks: {},
   verifiedImpactMetrics: [],
+  heroSlides: HERO_SLIDES,
 };
