@@ -1,0 +1,153 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-obsidian: #05070D;
+  --color-obsidian-soft: #080B13;
+  --color-surface: #0B0F1A;
+  --color-surface-elevated: #111726;
+  --color-plum: #7A184D;
+  --color-purple: #832D90;
+  --color-indigo-brand: #3C2399;
+  --color-gold: #E8AF25;
+  --color-gold-bright: #F3D754;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background-color: #05070D;
+    color: #F1F5F9;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid #E8AF25;
+    outline-offset: 2px;
+  }
+}
+
+.bg-grid-architectural {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.bg-d7-atmosphere {
+  background-image:
+    radial-gradient(circle at 82% 18%, rgba(122, 24, 77, 0.22), transparent 45%),
+    radial-gradient(circle at 18% 82%, rgba(60, 35, 153, 0.14), transparent 48%),
+    radial-gradient(circle at 50% 0%, rgba(232, 175, 37, 0.07), transparent 55%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.bg-grid-architectural.bg-d7-atmosphere {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    radial-gradient(circle at 82% 18%, rgba(122, 24, 77, 0.22), transparent 45%),
+    radial-gradient(circle at 18% 82%, rgba(60, 35, 153, 0.14), transparent 48%),
+    radial-gradient(circle at 50% 0%, rgba(232, 175, 37, 0.07), transparent 55%);
+  background-size: 48px 48px, 48px 48px, 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat;
+}
+
+@keyframes ken-burns-drift {
+  0% {
+    transform: scale(1.01) translate3d(0%, 0%, 0);
+  }
+  50% {
+    transform: scale(1.09) translate3d(-1.4%, -1%, 0);
+  }
+  100% {
+    transform: scale(1.02) translate3d(0.6%, 0.4%, 0);
+  }
+}
+
+@keyframes ken-burns-drift-alt {
+  0% {
+    transform: scale(1.07) translate3d(1.2%, -0.6%, 0);
+  }
+  50% {
+    transform: scale(1.01) translate3d(-0.6%, 0.8%, 0);
+  }
+  100% {
+    transform: scale(1.08) translate3d(-1.2%, -0.4%, 0);
+  }
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translate3d(0%, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes progress-fill {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.animate-ken-burns {
+  animation: ken-burns-drift 16s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  will-change: transform;
+}
+
+.animate-ken-burns-alt {
+  animation: ken-burns-drift-alt 16s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  will-change: transform;
+}
+
+.animate-marquee {
+  animation: marquee-scroll 38s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.animate-slide-progress {
+  transform-origin: left center;
+  animation: progress-fill 6500ms linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  .animate-ken-burns,
+  .animate-ken-burns-alt,
+  .animate-marquee,
+  .animate-slide-progress {
+    animation: none !important;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Leo Club of NIBM",
+  "description": "Official website and content-management platform for the Leo Club of NIBM, National Institute of Business Management, Sri Lanka — Leo District 306 D7.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
